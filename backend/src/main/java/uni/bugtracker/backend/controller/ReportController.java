@@ -43,15 +43,15 @@ public class ReportController {
     @PostMapping("/widget")
     public ResponseEntity<?> create(
             @Valid @RequestPart ReportCreationRequestWidget request,
-            @RequestPart(required=true) MultipartFile screen) throws IOException {
-        byte[] screenBytes = screen.getBytes();
+            @RequestPart(required=false) MultipartFile screen) throws IOException {
+        byte[] screenBytes = (screen != null && !screen.isEmpty()) ? screen.getBytes() : null;
         return new ResponseEntity<>(Map.of(
                 "message", "Report created",
                 "reportId", reportService.createReport(request, screenBytes)),
                 HttpStatus.CREATED);
     }
 
-//    @PreAuthorize("isAuthenticated()")
+    //    @PreAuthorize("isAuthenticated()")
     @PreAuthorize("@projectSecurity.hasAccessToProject(@reportService.getProjectIdByReportId(#id), authentication)")
     @PatchMapping("/{id}/dashboard")
     public ResponseEntity<ReportCardDTO> updateDev(
@@ -90,7 +90,7 @@ public class ReportController {
     @PreAuthorize("@projectSecurity.hasAccessToProject(@reportService.getProjectIdByReportId(#reportId), authentication)")
     @GetMapping("/{reportId}")
     public ResponseEntity<ReportCardDTO> getReportCard(
-        @PathVariable Long reportId
+            @PathVariable Long reportId
     ) {
         return new ResponseEntity<>(reportService.getReportCard(reportId), HttpStatus.OK);
     }

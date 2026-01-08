@@ -41,7 +41,7 @@ public class ReportMapper {
         report.setReportedAt(request.getReportedAt());
         report.setComments(trim(request.getComments(), MAX_COMMENTS));
         report.setUserEmail(request.getUserEmail());
-        if (screen != null) {
+        if (screen != null && screen.length > 0) {
             report.setScreen(screen);
         }
         report.setCurrentUrl(request.getCurrentUrl());
@@ -69,13 +69,13 @@ public class ReportMapper {
         if (fields.contains("tags")) {
             List<String> tags = request.getTags();
             report.setTags(tags == null ? null :
-                tags.stream()
-                        .map(String::trim)
-                        .map(String::toUpperCase)
-                        .limit(MAX_TAGS)
-                        .filter(this::isValidTag)
-                        .map(Tag::valueOf)
-                        .collect(Collectors.toList()));
+                    tags.stream()
+                            .map(String::trim)
+                            .map(String::toUpperCase)
+                            .limit(MAX_TAGS)
+                            .filter(this::isValidTag)
+                            .map(Tag::valueOf)
+                            .collect(Collectors.toList()));
         }
 
         if (fields.contains("reportedAt")) {

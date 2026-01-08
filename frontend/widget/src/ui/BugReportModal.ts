@@ -1,6 +1,7 @@
 // TypeScript
 import { ScreenshotCapturer } from './ScreenshotCapturer';
 import { BeaconClient } from '../api/BeaconClient';
+import {Client} from "../api/Client";
 
 export class BugReportModal {
     private modal: HTMLElement | null = null;
@@ -13,14 +14,17 @@ export class BugReportModal {
     private projectId: string;
     private sessionId: number;
     private onClose: () => void;
+    private client: Client;
 
     constructor(
         beaconClient: BeaconClient,
+        client: Client,
         projectId: string,
         sessionId: number,
         onClose: () => void
     ) {
         this.beaconClient = beaconClient;
+        this.client = client;
         this.projectId = projectId;
         this.sessionId = sessionId;
         this.onClose = onClose;
@@ -42,7 +46,14 @@ export class BugReportModal {
         }
 
         // Capture initial screenshot (optional target)
-        await this.capturePreview();
+        if (this.screenshotAllowed) {
+            try {
+                // Capture the body before modal is rendered
+                await this.capturePreview(document.body);
+            } catch (error) {
+                console.warn('Failed to capture initial screenshot:', error);
+            }
+        }
     }
 
     public close(): void {
@@ -152,8 +163,16 @@ export class BugReportModal {
                 throw new Error('Failed to submit report');
             }
 
-            // Close modal on success
-            this.close();
+            this.showSuccess('Report submitted successfully!');
+
+            const newSessionId = await this.client.restartSession();
+            if (newSessionId) {
+                this.sessionId = newSessionId;
+            }
+
+            setTimeout(() => {
+                this.close();
+            }, 1500);
         } catch (error) {
             console.error('Failed to submit bug report:', error);
             this.showError('Failed to submit report. Please try again.');
@@ -172,7 +191,21 @@ export class BugReportModal {
         if (!previewElement) return;
 
         try {
-            this.screenshotData = await this.screenshotCapturer.capturePreview(previewElement);
+            // Hide modal temporarily
+            if (this.modal) {
+                this.modal.style.display = 'none';
+            }
+
+            // Small delay to ensure modal is hidden from rendering
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Capture the page without the modal
+            this.screenshotData = await this.screenshotCapturer.capturePreview(document.body);
+
+            // Show modal again
+            if (this.modal) {
+                this.modal.style.display = 'flex';
+            }
             this.updatePreviewElement(previewElement, this.screenshotData);
         } catch (error) {
             console.error('Failed to capture screenshot:', error);
@@ -292,10 +325,11 @@ export class BugReportModal {
         });
 
         // Allow clicking preview to re-capture or zoom later
-        const preview = this.content?.querySelector('#bugtracker-screenshot-preview') as HTMLElement;
+        /*const preview = this.content?.querySelector('#bugtracker-screenshot-preview') as HTMLElement;
         preview?.addEventListener('click', async () => {
             await this.requestConsentAndCapture();
         });
+        */
 
         // Close when clicking outside content
         modal.addEventListener('click', (evt) => {
@@ -388,4 +422,18 @@ export class BugReportModal {
             errEl.style.display = 'none';
         }, 5000);
     }
+
+    private showSuccess(message: string): void {
+        const errEl = this.content?.querySelector('.bugtracker-error') as HTMLElement | null;
+        if (!errEl) return;
+        errEl.textContent = message;
+        errEl.style.display = 'block';
+        errEl.style.color = '#2e7d32'; // green color for success
+        // auto-hide after some time
+        setTimeout(() => {
+            errEl.style.display = 'none';
+            errEl.style.color = '#c62828'; // reset to error color
+        }, 5000);
+    }
+
 }

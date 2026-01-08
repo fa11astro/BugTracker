@@ -255,4 +255,83 @@ export class Client {
             return null;
         }
     }
+
+    public async restartSession(): Promise<number | null> {
+        try {
+            // Clear current session data from localStorage
+            localStorage.removeItem('bugtracker_session_id');
+
+            // Generate new session data
+            const newSessionData = this.generateSessionData();
+
+            // Generate temporary session ID
+            const tempSessionId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // Start new session
+            const newSessionId = await this.sendSessionStart(tempSessionId, newSessionData);
+
+            if (newSessionId !== null) {
+                // Store new session ID in localStorage
+                localStorage.setItem('bugtracker_session_id', newSessionId.toString());
+                console.log('Session restarted with new ID:', newSessionId);
+            }
+
+            return newSessionId;
+        } catch (error) {
+            console.error('Failed to restart session:', error);
+            return null;
+        }
+    }
+
+    private generateSessionData(): any {
+        return {
+            startTime: new Date().toISOString(),
+            browser: this.detectBrowser(),
+            browserVersion: this.detectBrowserVersion(),
+            os: this.detectOS(),
+            deviceType: this.detectDeviceType(),
+            screenResolution: `${screen.width}x${screen.height}`,
+            viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            language: navigator.language,
+            userAgent: navigator.userAgent,
+            ipAddress: '',
+            cookiesHash: '',
+            plugins: this.detectPlugins()
+        };
+    }
+
+    private detectBrowser(): string {
+        const ua = navigator.userAgent;
+        if (ua.includes('Chrome')) return 'Chrome';
+        if (ua.includes('Firefox')) return 'Firefox';
+        if (ua.includes('Safari')) return 'Safari';
+        if (ua.includes('Edge')) return 'Edge';
+        return 'Unknown';
+    }
+
+    private detectBrowserVersion(): string {
+        const ua = navigator.userAgent;
+        const match = ua.match(/(Chrome|Firefox|Safari|Edge)\/(\d+)/);
+        return match ? match[2] : 'Unknown';
+    }
+
+    private detectOS(): string {
+        const ua = navigator.userAgent;
+        if (ua.includes('Windows')) return 'Windows';
+        if (ua.includes('Mac')) return 'macOS';
+        if (ua.includes('Linux')) return 'Linux';
+        if (ua.includes('Android')) return 'Android';
+        if (ua.includes('iOS')) return 'iOS';
+        return 'Unknown';
+    }
+
+    private detectDeviceType(): string {
+        if (/Mobi|Android/i.test(navigator.userAgent)) return 'Mobile';
+        if (/Tablet|iPad/i.test(navigator.userAgent)) return 'Tablet';
+        return 'Desktop';
+    }
+
+    private detectPlugins(): string[] {
+        return Array.from(navigator.plugins || []).map(p => p.name);
+    }
 }

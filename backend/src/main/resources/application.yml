@@ -54,7 +54,7 @@ springdoc:
 # CORS настройки
 app:
   cors:
-    allowed-origins: "http://localhost:*,http://127.0.0.1:,http://127.0.0.1:,https://edhelielboneflare.github.io,null"
+    allowed-origins: "http://localhost:3000,http://127.0.0.1:,http://127.0.0.1:,https://edhelielboneflare.github.io,null"
 
 # Логирование для отладки CORS
 logging:

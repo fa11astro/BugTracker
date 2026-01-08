@@ -36,7 +36,7 @@ export class BeaconClient {
         // Check if screenshot is too large
         const processedPayload = await this.processBugReportPayload(payload);
 
-        const url = `${this.baseUrl}/api/reports`;
+        const url = `${this.baseUrl}/api/reports/widget`;
         const blob = new Blob([JSON.stringify(processedPayload)], {
             type: 'application/json'
         });
@@ -62,17 +62,17 @@ export class BeaconClient {
         },
         screenshotBlob: Blob | null
     ): Promise<boolean> {
-        const url = `${this.baseUrl}/api/reports`;
+        const url = `${this.baseUrl}/api/reports/widget`;
 
         try {
             const formData = new FormData();
 
             // Add JSON metadata as a blob with application/json content type
-            formData.append('report', new Blob([JSON.stringify(reportData)], { type: 'application/json' }));
+            formData.append('request', new Blob([JSON.stringify(reportData)], { type: 'application/json' }));
 
             // Add screenshot file if provided (optional)
             if (screenshotBlob) {
-                formData.append('screenshot', screenshotBlob, 'screenshot.jpg');
+                formData.append('screen', screenshotBlob, 'screenshot.jpg');
             }
 
             // Use fetch instead of sendBeacon for multipart/form-data
@@ -87,26 +87,6 @@ export class BeaconClient {
             console.error('Failed to send bug report:', error);
             return false;
         }
-    }
-
-    public sendHeartbeat(sessionId: string, projectId: string): boolean {
-        if (!navigator.sendBeacon) {
-            return false;
-        }
-
-        const payload = {
-            sessionId,
-            projectId,
-            timestamp: new Date().toISOString(),
-            url: window.location.href
-        };
-
-        const url = `${this.baseUrl}/api/sessions/heartbeat`;
-        const blob = new Blob([JSON.stringify(payload)], {
-            type: 'application/json'
-        });
-
-        return navigator.sendBeacon(url, blob);
     }
 
     /**

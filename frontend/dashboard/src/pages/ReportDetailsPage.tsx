@@ -34,6 +34,12 @@ const ReportDetailsPage: React.FC = () => {
         if (reportId) {
             fetchData();
         }
+
+        return () => {
+            if (screenshotUrl?.startsWith('blob:')) {
+                URL.revokeObjectURL(screenshotUrl);
+            }
+        };
     }, [reportId]);
 
     const fetchData = async () => {
@@ -60,14 +66,27 @@ const ReportDetailsPage: React.FC = () => {
 
             setReport(processedReport as Report);
 
-            if (processedReport.screenUrl) {
-                if (processedReport.screenUrl.startsWith('/')) {
-                    setScreenshotUrl(`http://localhost:8080${processedReport.screenUrl}`);
-                } else {
-                    setScreenshotUrl(processedReport.screenUrl);
+            if (processedReport.screenUrl || processedReport.id) {
+                try {
+                    const token = localStorage.getItem('token');
+                    const screenshotEndpoint = processedReport.screenUrl?.startsWith('/')
+                        ? `http://localhost:8080${processedReport.screenUrl}`
+                        : `http://localhost:8080/api/reports/${processedReport.id}/screenshot`;
+
+                    const response = await fetch(screenshotEndpoint, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        setScreenshotUrl(blobUrl);
+                    }
+                } catch (err) {
+                    console.error('Failed to load screenshot:', err);
                 }
-            } else if (processedReport.id) {
-                setScreenshotUrl(`http://localhost:8080/api/reports/${processedReport.id}/screenshot`);
             }
 
             setEditData({
